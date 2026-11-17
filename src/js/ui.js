@@ -28,7 +28,7 @@ const isRect = s => s.geom.type === 'rect', isRound = s => s.geom.type === 'roun
 const matOpts = () => E.MAT_GROUPS.map(([gl, ids]) => [gl, ids.map(id => [id, id === 'user' ? 'Materiał własny (parametry podane)' : (E.MATS[id].name + (E.MATS[id].kind === 'lvl' ? ' – wg producenta' : ''))])]);
 const matOptsOpt = () => [['', [['', 'jak słup']]], ...matOpts().filter(g => g[0] !== 'Inne')];
 const dimList = () => (S.mat.cls !== 'user' && E.MATS[S.mat.cls] && E.MATS[S.mat.cls].kind === 'glulam' ? E.DIMS_GL_H : E.DIMS_SOLID);
-const lefPh = p => () => R && R.buck && R.buck[p] && isFinite(R.buck[p].lefAuto) ? `auto (MES): ${fmt(R.buck[p].lefAuto / 1000, 3)} m` : 'auto (MES)';
+const lefPh = p => () => R && R.buck && R.buck[p] && isFinite(R.buck[p].lefAuto) ? `auto ${fmt(R.buck[p].lefAuto / 1000, 3)}` : 'auto (MES)';
 const KIND_N = { perm: 'stałe', imp: 'użytkowe', snow: 'śnieg', wind: 'wiatr', other: 'inne zmienne', acc: 'wyjątkowe' };
 
 /* ---------------------------------------------------------- definicja pól */
@@ -174,12 +174,18 @@ const COEF_ITEMS = [
   { k: 'coef.phi0', t: 'num', l: 'Przechyłka φ₀ (5.4.4)', list: [0.005, 0.0033], min: 0 },
   { k: 'coef.d0', t: 'num', l: 'd_{0} – warstwa zerowej wytrzymałości (pożar)', u: 'mm', list: [7], min: 0 },
   { k: 'coef.gc', t: 'num', l: 'γ_{c} – beton (docisk, EC2)', list: [1.4, 1.5], min: 1 },
+  { t: 'sub', l: 'Nadpisanie wartości normowych (puste – wartość z tablic)' },
+  ...E.DUR_KEYS.map(k => ({ k: 'coef.kmod_' + k, t: 'num', l: `k_{mod} – ${E.DUR[k].n}`, list: ['', 0.5, 0.55, 0.6, 0.65, 0.7, 0.8, 0.9, 1.0, 1.1], opt: true, min: 0.1, max: 1.5, ph: () => R && R.m ? `auto ${fmt(R.m.kmodAuto[k], 2)}` : 'auto' })),
+  { k: 'coef.kdef', t: 'num', l: 'k_{def} (pełzanie)', list: ['', 0.6, 0.8, 1.6, 2.0, 3.0], opt: true, min: 0, max: 5, ph: () => R && R.m ? `auto ${fmt(R.m.kdefAuto, 2)}` : 'auto' },
+  { k: 'coef.betaC', t: 'num', l: 'β_{c} (imperfekcja, 6.29)', list: ['', 0.1, 0.2], opt: true, min: 0.01, max: 1, ph: () => R && R.m ? `auto ${fmt(R.m.betaCAuto, 1)}` : 'auto' },
+  { k: 'coef.kfi', t: 'num', l: 'k_{fi} (pożar, tab. 2.1)', list: ['', 1.1, 1.15, 1.25], opt: true, min: 1, max: 1.5, ph: () => R && R.m ? `auto ${fmt(R.m.kfiAuto, 2)}` : 'auto' },
+  { t: 'hint', h: () => 'k<sub>mod</sub> dotyczy bieżącej klasy użytkowania. Zmiana wartości normowych wymaga uzasadnienia (np. aprobata, Załącznik Krajowy).' },
   { k: 'coef.acc', t: 'num', l: 'α_{cc} – beton', list: [0.85, 1.0], min: 0.5 },
 ];
 const GROUPS = [
   { id: 'geo', title: 'Geometria i schemat statyczny', items: GEO_ITEMS },
-  { id: 'mat', title: 'Materiał', items: MAT_ITEMS },
   { id: 'load', title: 'Obciążenia (wartości charakterystyczne)', items: [{ k: 'loads.sw', t: 'chk', l: 'Ciężar własny słupa (G0)' }, { t: 'loads' }, { t: 'hint', h: () => 'Kliknij pozycję, aby ją zmienić. Siła N dodatnia – ściskająca (w dół). Pozycje „±” liczone są w obu kierunkach poziomych. W oknie obciążenia są generatory: z powierzchni zbierania (PN-EN 1991-1-1), śnieg (PN-EN 1991-1-3) i wiatr (PN-EN 1991-1-4, ZK PL).' }] },
+  { id: 'mat', title: 'Materiał', items: MAT_ITEMS },
   { id: 'comb', title: 'Kombinacje (PN-EN 1990)', items: COMB_ITEMS },
   { id: 'stab', title: 'Stateczność', items: STAB_ITEMS },
   { id: 'conn', title: 'Oparcie i połączenia', items: CONN_ITEMS },
@@ -212,7 +218,7 @@ function fieldsHTML(items) {
     if (f.t === 'faces') { o += `<div class="row wide"${hide} data-show="${fid}"><label>Strony ogrzewane (pożar)</label><div class="chkrow">${[['t', 'góra (+z)'], ['b', 'dół (−z)'], ['l', 'lewa (−y)'], ['r', 'prawa (+y)']].map(([k, l]) => `<label class="chk"><input type="checkbox" data-k="fire.faces.${k}" data-t="chk"${S.fire.faces[k] ? ' checked' : ''}>${l}</label>`).join('')}</div></div>`; f._id = fid++; return; }
     const v = getP(S, f.k), id = 'f' + (fid++); f._id = id;
     const lab = `<label for="${id}">${sym(f.l)}</label>`;
-    if (f.t === 'chk') { o += `<label class="chk"${hide} data-show="${id}"><input type="checkbox" id="${id}" data-k="${f.k}" data-t="chk"${v ? ' checked' : ''}${f.re ? ' data-re="1"' : ''}>${sym(f.l)}</label>`; return; }
+    if (f.t === 'chk') { o += `<label class="chk"${hide} data-show="${id}"><input type="checkbox" id="${id}" data-k="${f.k}" data-t="chk"${v ? ' checked' : ''}${f.re ? ' data-re="1"' : ''}><span>${sym(f.l)}</span></label>`; return; }
     if (f.t === 'sel' || f.t === 'selg') {
       let opts;
       if (f.t === 'selg') opts = optionsOf(f).map(([gl, arr]) => `<optgroup label="${esc(gl)}">${arr.map(([k, l]) => `<option value="${esc(k)}"${String(k) === String(v) ? ' selected' : ''}>${esc(l)}</option>`).join('')}</optgroup>`).join('');
@@ -324,7 +330,7 @@ function loadsHTML() {
     o += `<h5>${sym(t)}<span class="sp"></span><button class="addb" data-add="${k}" title="Dodaj obciążenie">+ dodaj</button></h5>`;
     list.forEach(({ it, i }) => {
       const ps = E.psiOf(it);
-      o += `<div class="ldi" data-ld="${i}" title="Kliknij, aby zmienić"><span class="id">${esc(G.loadId(S, i))}</span><span><span class="nm">${esc(it.name || KIND_N[k])}</span> <span class="ds">${itemDesc(it)}</span></span><span class="du">${esc(E.DUR[it.dur].n)}${k !== 'perm' && k !== 'acc' ? `<br>ψ₀ ${fmt(ps.p0, 1)} · ψ₂ ${fmt(ps.p2, 1)}` : ''}</span></div>`;
+      o += `<div class="ldi" data-ld="${i}" title="Kliknij, aby zmienić"><span class="id">${esc(G.loadId(S, i))}</span><span><span class="nm">${esc(it.name || KIND_N[k])}</span> <span class="ds">${itemDesc(it)}</span><br><span class="du">${esc(E.DUR[it.dur].n)}${k !== 'perm' && k !== 'acc' ? ` · ψ₀ = ${fmt(ps.p0, 1)}, ψ₁ = ${fmt(ps.p1, 1)}, ψ₂ = ${fmt(ps.p2, 1)}` : ''}</span></span></div>`;
     });
   });
   return o + '</div>';
@@ -420,12 +426,12 @@ function genPreview(it) {
 }
 function genHTML(it) {
   const g = genDefaults(it);
-  const inp = (k, l, u, w) => `<label class="chk" style="display:inline-flex">${l} <input class="txt" style="width:${w || 70}px" data-gk="${k}" value="${esc(g[k])}"> ${u || ''}</label>`;
-  const sel = (k, l, o) => `<label class="chk" style="display:inline-flex">${l} <select style="width:auto" data-gk="${k}">${o.map(([v, t]) => `<option value="${esc(v)}"${String(v) === String(g[k]) ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></label>`;
+  const inp = (k, l, u, w) => `<label class="chk" style="display:inline-flex"><span>${l}</span><input class="txt" style="width:${w || 70}px" data-gk="${k}" value="${esc(g[k])}"><span>${u || ''}</span></label>`;
+  const sel = (k, l, o) => `<label class="chk" style="display:inline-flex"><span>${l}</span><select style="width:auto" data-gk="${k}">${o.map(([v, t]) => `<option value="${esc(v)}"${String(v) === String(g[k]) ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></label>`;
   let body = '', title = '';
   if (it.kind === 'snow') { title = 'Generator: obciążenie śniegiem z powierzchni dachu (PN-EN 1991-1-3, ZK PL)'; body = sel('zone', 'Strefa', Object.entries(E.SNOW_ZONES).map(([k, v]) => [k, v.n])) + inp('alt', 'A [m n.p.m.]', '', 60) + inp('slope', 'nachylenie α', '°', 50) + inp('area', 'powierzchnia zbierania', 'm²', 60) + inp('Ce', 'C<sub>e</sub>', '', 46) + inp('Ct', 'C<sub>t</sub>', '', 46); }
   else if (it.kind === 'wind') { title = 'Generator: wiatr na ścianę / słup (PN-EN 1991-1-4, ZK PL)'; body = sel('zone', 'Strefa', Object.entries(E.WIND_ZONES).map(([k, v]) => [k, v.n])) + inp('alt', 'A [m n.p.m.]', '', 60) + sel('terr', 'Teren', Object.entries(E.TERRAIN).map(([k, v]) => [k, v.n])) + inp('z', 'wysokość z', 'm', 50) + inp('c', 'współczynnik c (c<sub>pe</sub>−c<sub>pi</sub> lub c<sub>f</sub>)', '', 50) + inp('width', 'pasmo zbierania b', 'm', 50) + sel('dir', 'kierunek', [['qz', 'q_z (płaszczyzna x–z)'], ['qy', 'q_y (płaszczyzna x–y)']]); }
-  else if (it.kind === 'imp') { const L = E.IMP_EC1[it.cat] || E.IMP_EC1.B; title = 'Generator: obciążenie użytkowe z powierzchni zbierania (PN-EN 1991-1-1)'; body = sel('sub', 'Rodzaj', L.map(q => [q.id, `${q.n} (${fmt(q.q[0], 1)}–${fmt(q.q[1], 1)} kN/m²)`])) + inp('qk', 'q<sub>k</sub> (puste – górna granica)', 'kN/m²', 60) + inp('area', 'powierzchnia zbierania A', 'm²', 60) + inp('nfl', 'liczba kondygnacji n', '', 40) + `<label class="chk" style="display:inline-flex"><input type="checkbox" data-gk="red"${g.red ? ' checked' : ''}> redukcja α<sub>n</sub> (6.3.1.2(11))</label>`; }
+  else if (it.kind === 'imp') { const L = E.IMP_EC1[it.cat] || E.IMP_EC1.B; title = 'Generator: obciążenie użytkowe z powierzchni zbierania (PN-EN 1991-1-1)'; body = sel('sub', 'Rodzaj', L.map(q => [q.id, `${q.n} (${fmt(q.q[0], 1)}–${fmt(q.q[1], 1)} kN/m²)`])) + inp('qk', 'q<sub>k</sub> (puste – górna granica)', 'kN/m²', 60) + inp('area', 'powierzchnia zbierania A', 'm²', 60) + inp('nfl', 'liczba kondygnacji n', '', 40) + `<label class="chk" style="display:inline-flex"><input type="checkbox" data-gk="red"${g.red ? ' checked' : ''}><span>redukcja α<sub>n</sub> (6.3.1.2(11))</span></label>`; }
   else { title = 'Generator: obciążenie z powierzchni zbierania'; body = inp('gk', 'obciążenie powierzchniowe', 'kN/m²', 60) + inp('area', 'powierzchnia zbierania A', 'm²', 60) + inp('nfl', 'liczba kondygnacji', '', 40); }
   return `<div class="gen"><h5>${title}</h5><div class="chkrow">${body}</div><div class="res" id="genRes">${genPreview(it)}</div><button class="btn sm" data-gen="${it.kind}">Przyjmij wartość</button></div>`;
 }
@@ -482,11 +488,11 @@ function changed(rerender, after) {
 function recalc() {
   const t0 = performance.now();
   try { R = E.calc(S); } catch (e) { console.error(e); R = { errors: ['Błąd obliczeń: ' + e.message], warnings: [], checks: [] }; }
+  U.lastMs = performance.now() - t0;
   U.R = R; U.S = S;
   autoTicks();
   rendered = {};
   renderStatus(); renderDsum(); refreshHints(); renderDataSide(); renderActive();
-  U.lastMs = performance.now() - t0;
 }
 // sprawdzenia, które przestały być spełnione, są odznaczane; spełnione ponownie – zaznaczane, jeśli wcześniej odznaczono automatycznie
 let prevStat = null;
@@ -556,7 +562,7 @@ function renderDataSide() {
   o += `<div class="box"><h4>Schemat statyczny i obciążenia <small>kliknij słup, podporę lub obciążenie</small></h4><div class="schemewrap">${G.schemeSVG(R && !R.errors.length ? R : null, S, { W: 520, H: 460 })}</div></div>`;
   if (R && !R.errors.length) {
     const ne = R.xs.length - 1, xs = []; for (let e = 0; e < ne; e++) xs.push(R.xs[e], R.xs[e + 1]);
-    const ch = (key, title, unit, k, div, c, fill) => G.vChart({ key, W: 124, H: 250, title, unit, xs, L: R.L, series: [{ v: R.env[k].max.map(v => v / div), c, fill }, { v: R.env[k].min.map(v => v / div), c, fill, dash: '' }], dp: 1 });
+    const ch = (key, title, unit, k, div, c, fill) => G.vChart({ key, W: 140, H: 260, title, unit, xs, L: R.L, series: [{ v: R.env[k].max.map(v => v / div), c, fill }, { v: R.env[k].min.map(v => v / div), c, fill, dash: '' }], dp: 1 });
     o += `<div class="box"><h4>Obwiednie SGN <small>wartości obliczeniowe</small></h4><div class="flex" style="gap:6px">${ch('N', 'N [kN]', '+ ściskanie', 'N', 1e3, G.C.d1, G.C.f1)}${ch('My', 'M_y [kNm]', 'płaszcz. x–z', 'My', 1e6, G.C.d2, G.C.f2)}${ch('Mz', 'M_z [kNm]', 'płaszcz. x–y', 'Mz', 1e6, G.C.d3, G.C.f3)}${ch('Vz', 'V_z [kN]', '', 'Vz', 1e3, G.C.d2, '')}</div></div>`;
     const gov = R.checks.filter(c => c.status !== 'info' && isFinite(c.ratio) && c.fmt !== 'text' && !c.warnOnly).sort((a, b) => b.ratio - a.ratio)[0];
     if (gov) o += `<p class="hint">Decyduje: <b>${sym(gov.name)}</b> – η = ${fmt(gov.ratio * 100, 0)}%${gov.combo ? ` (${esc(gov.combo)})` : ''}. Obliczenia: ${fmt(U.lastMs || 0, 0)} ms.</p>`;

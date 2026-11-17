@@ -196,7 +196,7 @@ function defaultState() {
         { kind: 'perm', name: 'Stałe z dachu/stropu', dur: 'perm', N: 40, ey: 0, ez: 0 },
         { kind: 'snow', name: 'Śnieg', dur: 'short', alt: 'low', N: 25 },
         { kind: 'wind', name: 'Wiatr', dur: 'inst', qz: 0.8, rev: true },
-      ],
+      ].map(normItem),
     },
     sls: { limI: 300, limF: 150, on: true },
     fire: { R: 0, faces: { t: true, b: true, l: true, r: true }, prot: 'none', hp: 15, tch: '', tf: '', mode: 'comb', eta: 0.6, lef: '' },
@@ -207,7 +207,8 @@ function defaultState() {
       top: 'none',
       beam: { cls: '', w: 140, dir: 'y', end: '', kc90: 'auto' },
     },
-    coef: { gMsolid: 1.3, gMgl: 1.25, gMlvl: 1.2, gMA: 1.0, gMfi: 1.0, kf1: 50, kf2: 80, phi0: 0.005, d0: 7, gc: 1.4, acc: 1.0 },
+    coef: { gMsolid: 1.3, gMgl: 1.25, gMlvl: 1.2, gMA: 1.0, gMfi: 1.0, kf1: 50, kf2: 80, phi0: 0.005, d0: 7, gc: 1.4, acc: 1.0,
+      kmod_perm: '', kmod_long: '', kmod_med: '', kmod_short: '', kmod_inst: '', kdef: '', betaC: '', kfi: '' },
   };
 }
 
@@ -280,10 +281,16 @@ function matOf(S, clsOverride) {
     betaC: K.betaC, kfi: K.kfi, kcrDef: K.kcr,
     kcr: !clsOverride && S.mat.kcr !== '' && num(S.mat.kcr, 0) > 0 ? num(S.mat.kcr, K.kcr) : K.kcr,
     gammaDef: Math.round(base.rhomean) / 100,
-    sc: S.mat.sc, kdef: KDEF[S.mat.sc], kmodT: KMOD[S.mat.sc],
+    sc: S.mat.sc, kdef: KDEF[S.mat.sc], kmodT: Object.assign({}, KMOD[S.mat.sc]),
     ksys: clamp(num(S.mat.ksys, 1), 1, 1.2),
   });
   m.gamma = !clsOverride && S.mat.gamma !== '' && num(S.mat.gamma, 0) > 0 ? num(S.mat.gamma, m.gammaDef) : m.gammaDef;
+  // wartości nadpisane ręcznie (puste – wartości normowe)
+  m.kmodAuto = Object.assign({}, m.kmodT); m.kdefAuto = m.kdef; m.betaCAuto = m.betaC; m.kfiAuto = m.kfi;
+  DUR_KEYS.forEach(k => { const v = C['kmod_' + k]; if (v !== '' && v !== undefined && num(v, 0) > 0) m.kmodT[k] = num(v, m.kmodT[k]); });
+  if (C.kdef !== '' && C.kdef !== undefined && num(C.kdef, -1) >= 0) m.kdef = num(C.kdef, m.kdef);
+  if (C.betaC !== '' && C.betaC !== undefined && num(C.betaC, 0) > 0) m.betaC = num(C.betaC, m.betaC);
+  if (C.kfi !== '' && C.kfi !== undefined && num(C.kfi, 0) > 0) m.kfi = num(C.kfi, m.kfi);
   // zwęglanie (PN-EN 1995-1-2 tab. 3.1)
   if (base.kind === 'hard') { const t = clamp((base.rhok - 290) / (450 - 290), 0, 1); m.beta0 = 0.65 - 0.15 * t; m.betan = 0.7 - 0.15 * t; }
   else { m.beta0 = K.b0; m.betan = K.bn; }

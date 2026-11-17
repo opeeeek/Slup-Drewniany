@@ -129,12 +129,12 @@ select { padding-right: 2px; }
 .ldl { margin: 4px 0 8px; }
 .ldl h5 { margin: 8px 0 4px; font-size: 12px; color: var(--ink2); display: flex; align-items: center; gap: 8px; }
 .ldl h5 .sp { flex: 1; }
-.ldi { display: grid; grid-template-columns: 34px 1fr auto; gap: 8px; align-items: center; border: 1px solid var(--line); border-radius: 5px; background: var(--itembg); padding: 5px 8px; margin-bottom: 4px; cursor: pointer; font-size: 12px; }
+.ldi { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 8px; align-items: center; border: 1px solid var(--line); border-radius: 5px; background: var(--itembg); padding: 5px 8px; margin-bottom: 4px; cursor: pointer; font-size: 12px; }
 .ldi:hover { border-color: var(--addln); background: var(--acc2); }
 .ldi .id { font-weight: 700; color: var(--acc3); }
 .ldi .nm { color: var(--ink); font-weight: 600; }
 .ldi .ds { color: var(--ink3); font-size: 11.5px; }
-.ldi .du { font-size: 11px; color: var(--ink3); white-space: nowrap; }
+.ldi .du { font-size: 11px; color: var(--ink3); }
 .addb { border: 1px dashed var(--addln); background: transparent; color: var(--acc); border-radius: 4px; padding: 2px 8px; cursor: pointer; font-size: 11.5px; }
 .addb:hover { background: var(--addhov); }
 .ptab { width: 100%; border-collapse: collapse; font-size: 12px; margin: 4px 0; }

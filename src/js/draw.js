@@ -93,7 +93,7 @@ function schemeSVG(R, S, o) {
   o = o || {};
   const W = o.W || 520, H = o.H || 440;
   uid++;
-  const top = 64, bot = H - 70, L = S.geom.L * 1000, Hs = (bot - top) / L;
+  const top = 92, bot = H - 70, L = S.geom.L * 1000, Hs = (bot - top) / L;
   const Y = x => bot - x * Hs;
   let s = svgOpen(W, H, 'schemesvg') + `<defs><pattern id="hb${uid}" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="5" style="stroke:${C.ink2};stroke-width:1"/></pattern></defs>`;
   const items = S.loads.items;
@@ -132,7 +132,7 @@ function schemeSVG(R, S, o) {
       const id = loadId(S, i);
       if (it.N) {
         const ex = it[pl.e] || 0, xx = cx + clampPx(ex * 0.12) + nOff * 9, up = it.N < 0;
-        s += `<g class="hot" data-act="load" data-i="${i}">` + (up ? arrow(xx, Y(L) - 4, xx, Y(L) - 40, C.d1, 1.8) : arrow(xx, Y(L) - 42, xx, Y(L) - 3, C.d1, 1.8)) + `<title>${esc(it.name)}: N = ${fx(it.N, 2)} kN${ex ? `, e = ${fx(ex, 0)} mm` : ''}</title></g>`;
+        s += `<g class="hot" data-act="load" data-i="${i}">` + (up ? arrow(xx, Y(L) - 4, xx, Y(L) - 34, C.d1, 1.8) : arrow(xx, Y(L) - 34, xx, Y(L) - 3, C.d1, 1.8)) + `<title>${esc(it.name)}: N = ${fx(it.N, 2)} kN${ex ? `, e = ${fx(ex, 0)} mm` : ''}</title></g>`;
         nOff++;
       }
       if (it[pl.H]) {
@@ -156,7 +156,7 @@ function schemeSVG(R, S, o) {
   });
   // podpis sił osiowych
   const nl = items.map((it, i) => it.N ? `${loadId(S, i)} = ${fx(it.N, 1)}` : '').filter(Boolean);
-  if (nl.length) s += T(W / 2, 48, `N w głowicy [kN]: ${nl.join(', ')}`, { fs: 10, c: C.d1 });
+  if (nl.length) s += T(W / 2, 50, `N w głowicy [kN]: ${nl.join(', ')}`, { fs: 10, c: C.d1 });
   if (S.loads.sw && R && R.m) s += T(W / 2, H - 8, `ciężar własny g = ${fx(R.m.gamma * R.g.A * 1e-6, 3)} kN/m (γ = ${fx(R.m.gamma, 2)} kN/m³)`, { fs: 9.5, c: C.ink3 });
   return s + '</svg>';
 }
@@ -174,7 +174,7 @@ function vChart(o) {
   const all = o.series.reduce((a, se) => a.concat(se.v.filter(isFinite)), [0]);
   let mn = Math.min(...all), mx = Math.max(...all);
   if (mx - mn < 1e-9) { mx += 1; mn -= 1; }
-  const padL = 14, padR = 14, sc = (W - padL - padR) / (mx - mn);
+  const padL = 26, padR = 26, sc = (W - padL - padR) / (mx - mn);
   const X = v => padL + (v - mn) * sc, Y = x => bot - x / L * (bot - top);
   let s = svgOpen(W, H, 'vchart', ` data-chart="${o.key || ''}" data-mn="${mn}" data-mx="${mx}" data-l="${L}" data-top="${top}" data-bot="${bot}"`);
   s += T(W / 2, 13, o.title, { fs: 11, b: true }) + T(W / 2, 25, o.unit || '', { fs: 9.5, c: C.ink3 });
@@ -186,7 +186,7 @@ function vChart(o) {
     s += `<path d="${pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join('')}" style="fill:none;stroke:${se.c};stroke-width:${se.w || 1.6}${se.dash ? ';stroke-dasharray:' + se.dash : ''}"/>`;
   });
   // wartości ekstremalne
-  const lab = (v, i, c) => { if (!isFinite(v) || Math.abs(v) < 1e-9) return ''; const x = X(v), y = Y(o.xs[i]); return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.4" style="fill:${c}"/>` + T(Math.min(W - 4, Math.max(4, x + (v >= 0 ? 4 : -4))), Math.max(top + 8, Math.min(bot - 2, y - 4)), fx(v, o.dp === undefined ? 1 : o.dp), { fs: 9.5, a: v >= 0 ? 'start' : 'end', c, b: true }); };
+  const lab = (v, i, c) => { if (!isFinite(v) || Math.abs(v) < 1e-9) return ''; const x = X(v), y = Y(o.xs[i]); const right = x > W / 2; return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.4" style="fill:${c}"/>` + T(right ? Math.min(W - 2, x + 2) : Math.max(2, x - 2), Math.max(top + 9, Math.min(bot - 3, y - 5)), fx(v, o.dp === undefined ? 1 : o.dp), { fs: 9.5, a: right ? 'end' : 'start', c, b: true }); };
   o.series.filter(se => !se.nolab).forEach(se => {
     let imx = -1, imn = -1; se.v.forEach((v, i) => { if (imx < 0 || v > se.v[imx]) imx = i; if (imn < 0 || v < se.v[imn]) imn = i; });
     if (imx >= 0 && se.v[imx] > 1e-9) s += lab(se.v[imx], imx, se.c);
@@ -200,7 +200,7 @@ function vChart(o) {
 /* ------------------------------------------------------------ postacie wyboczenia */
 function modeSVG(R, S, o) {
   o = o || {};
-  const W = o.W || 420, H = o.H || 360, top = 40, bot = H - 50, L = R.L;
+  const W = o.W || 420, H = o.H || 360, top = 62, bot = H - 50, L = R.L;
   uid++;
   let s = svgOpen(W, H) + `<defs><pattern id="hb${uid}" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="5" style="stroke:${C.ink2};stroke-width:1"/></pattern></defs>`;
   const Y = x => bot - x / L * (bot - top);
@@ -215,7 +215,7 @@ function modeSVG(R, S, o) {
       s += `<path d="${R.xs.map((x, i) => `${i ? 'L' : 'M'}${(cx + b.mode[i] * amp).toFixed(1)} ${Y(x).toFixed(1)}`).join('')}" style="fill:none;stroke:${C.d1};stroke-width:2"/>`;
     }
     s += T(cx, bot + 34, `l_ef = ${fx(b.lef / 1000, 3)} m, β = ${fx(b.beta, 3)}${b.manual ? ' (ręcznie)' : ''}`, { fs: 10.5, c: C.acc });
-    s += T(cx, top - 10, `λ = ${fx(b.lam, 1)}, λ_rel = ${fx(b.lamRel, 3)}, k_c = ${fx(b.kc, 3)}`, { fs: 10, c: C.ink2 });
+    s += T(cx, 32, `λ = ${fx(b.lam, 1)}, λ_rel = ${fx(b.lamRel, 3)}, k_c = ${fx(b.kc, 3)}`, { fs: 10, c: C.ink2 });
   });
   return s + '</svg>';
 }
@@ -332,8 +332,10 @@ function elevSVG(R, S, o) {
   s += `<g transform="translate(${sx - 150} 30)">${sectionSVG(R, S, { W: 300, H: 280 }).replace(/^<svg[^>]*>/, '').replace(/<\/svg>$/, '')}</g>`;
   // opis materiału
   const desc = [`Materiał: ${esc(R.m.name)} (${esc(R.m.std)}), klasa użytkowania ${S.mat.sc}`, `Przekrój: ${secTxt(R, S)}`, `Wysokość L = ${fx(S.geom.L, 2)} m; podstawa: ${esc(baseTxt(S))}; głowica: ${esc(topTxt(S))}`];
-  desc.forEach((t, i) => { s += T(sx - 150, 340 + i * 16, t, { fs: 10.5, a: 'start' }); });
-  if (R.fire && R.fire.t) s += T(sx - 150, 340 + desc.length * 16, `Odporność ogniowa R${R.fire.t}`, { fs: 10.5, a: 'start' });
+  if (R.fire && R.fire.t) desc.push(`Odporność ogniowa R${R.fire.t}`);
+  const maxc = Math.max(30, Math.floor((W - sx + 150) / 6.2)), lines = [];
+  desc.forEach(t => { let cur = ''; t.split(' ').forEach(w => { if ((cur + ' ' + w).trim().length > maxc) { lines.push(cur); cur = '   ' + w; } else cur = (cur + ' ' + w).trim() === '' ? w : (cur ? cur + ' ' + w : w); }); if (cur) lines.push(cur); });
+  lines.forEach((t, i) => { s += T(sx - 150, 340 + i * 16, t, { fs: 10.5, a: 'start' }); });
   return s + '</svg>';
 }
 function secTxt(R, S) { const g = R.g; return g.type === 'round' ? `okrągły ⌀${fx(g.d, 0)} mm` : g.type === 'spaced' ? `wielogałęziowy ${g.n} × ${fx(g.t, 0)}×${fx(g.w, 0)} mm, odstęp a = ${fx(g.a, 0)} mm (${S.geom.sp.conn === 'pack' ? 'przekładki' : 'nakładki'})` : `prostokątny b×h = ${fx(g.b, 0)}×${fx(g.h, 0)} mm`; }
